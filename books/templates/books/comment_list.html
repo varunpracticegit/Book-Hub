@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comments</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .navbar {
+            margin-bottom: 2rem;
+        }
+        .comment-card {
+            margin-bottom: 1rem;
+        }
+        .comment-form {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 2px solid #007bff;
+            transition: all 0.3s ease;
+        }
+        .comment-form:hover {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            transform: scale(1.02);
+        }
+        .comment-list {
+            margin-top: 2rem;
+        }
+        .feedback-message {
+            display: none;
+            margin-top: 1rem;
+        }
+        .feedback-message.success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .feedback-message.error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #007bff;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="{% static 'images/Book_Rec_logo.png' %}" alt="Book Rec Logo" style="height: 40px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'index' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'recommendation-list-create' %}">Recommendations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'book-list-create' %}">Add New</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="my-4 text-center text-primary">Comments</h1>
+        
+        <!-- Comment Form -->
+        <div class="comment-form">
+            <form id="commentForm" method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div id="feedbackMessage" class="feedback-message"></div>
+                <button type="submit" class="btn btn-primary">Add Comment</button>
+            </form>
+        </div>
+
+        <!-- Comments List -->
+        <div class="comment-list">
+            <ul class="list-unstyled">
+                {% for comment in comments %}
+                <li class="comment-card">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <strong>{{ comment.user.username }}</strong> commented on <strong>{{ comment.book.title }}</strong>
+                            </h5>
+                            <p class="card-text">{{ comment.content }}</p>
+                            <p class="card-footer text-muted">Posted on: {{ comment.created_at }}</p>
+                        </div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('commentForm');
+            const feedbackMessage = document.getElementById('feedbackMessage');
+            
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        feedbackMessage.textContent = 'Comment added successfully!';
+                        feedbackMessage.className = 'feedback-message success';
+                        form.reset();
+                    } else {
+                        feedbackMessage.textContent = 'There was an error adding your comment.';
+                        feedbackMessage.className = 'feedback-message error';
+                    }
+                    feedbackMessage.style.display = 'block';
+                })
+                .catch(() => {
+                    feedbackMessage.textContent = 'There was an error adding your comment.';
+                    feedbackMessage.className = 'feedback-message error';
+                    feedbackMessage.style.display = 'block';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

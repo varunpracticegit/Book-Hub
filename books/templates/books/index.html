@@ -1,0 +1,178 @@
+{% load static %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Recommendations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .hero {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 50px 0;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+        .search-bar {
+            max-width: 500px;
+            margin: 20px auto;
+        }
+        .book-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .book-card img {
+            max-width: 100px;
+            float: left;
+            margin-right: 20px;
+        }
+        .description-summary {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="{% static 'images/Book_Rec_logo.png' %}" alt="Book Rec Logo" style="height: 40px;">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'index' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'book-list-create' %}">Add Book</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'recommendation-list-create' %}">Recommendations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero text-center">
+        <div class="container">
+            <h1>Discover Amazing Books</h1>
+            <p class="lead">Find your next favorite read with our book recommendations</p>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="container search-bar text-center">
+        <input type="text" id="search" class="form-control" placeholder="Search for books...">
+        <button onclick="searchBooks()" class="btn btn-primary mt-3">Search</button>
+    </div>
+
+    <!-- Book List -->
+    <div class="container mt-5" id="book-list">
+        <!-- Books will be dynamically inserted here -->
+    </div>
+
+    <script>
+        function searchBooks() {
+            const query = document.getElementById('search').value;
+            fetch(`/api/search/?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                let bookList = document.getElementById('book-list');
+                bookList.innerHTML = '';
+                data.forEach(book => {
+                    let bookItem = `<div class="book-card row">
+                        <div class="col-md-2">
+                            <img src="${book.cover_image}" alt="${book.title} cover" class="img-fluid">
+                        </div>
+                        <div class="col-md-10">
+                            <h2>${book.title}</h2>
+                            <p><strong>Author:</strong> ${book.author}</p>
+                            <p id="description" class="description-summary">${book.description}</p>
+                            <button onclick="toggleDescription(${book.id})" class="btn btn-secondary">View Description</button>
+                            <p><strong>Rating:</strong> ${book.rating}</p>
+                            <p><strong>Genre:</strong> ${book.genre}</p>
+                            <p><strong>Published Date:</strong> ${book.published_date}</p>
+                            <button data-book='${JSON.stringify(book)}' onclick="saveBook(this)" class="button is-dark is-outlined is-fullwidth">Save this book</button>
+                        </div>
+                    </div>`;
+                    bookList.innerHTML += bookItem;
+                });
+            });
+        }
+        
+        function saveBook(button) {
+            const book = JSON.parse(button.getAttribute('data-book')); // Parse the book data back into an object
+            fetch('/api/save-book/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')  // Ensure CSRF token is sent with the request if you're using Django
+                },
+                body: JSON.stringify(book) // Send the book data to the server
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Book saved successfully!');
+                } else {
+                    alert('Failed to save book.');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving book:', error);
+            });
+        }
+        
+        
+        // Helper function to get the CSRF token (if using Django)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function toggleDescription(id) {
+            const description = document.getElementById(`description`);
+            const button = description.nextElementSibling;
+            if (description.style.display === 'none') {
+                description.style.display = 'block';
+                button.textContent = 'Hide Description';
+            } else {
+                description.style.display = 'none';
+                button.textContent = 'View Description';
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
